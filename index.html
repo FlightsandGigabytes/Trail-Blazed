@@ -38,7 +38,8 @@ body {
 // ═══════════════════════════════════════════════════════════════
 //  T R A I L   B L A Z E D
 //  An American Weekend Vacation — The Blaze Family vs. 1848
-//  v1.0  |  HTML5 Canvas  |  Vanilla JS
+//  v1.1  |  HTML5 Canvas  |  Vanilla JS
+//  Changes: Raiders replace drones, hunger system, tribe camp, narrative update
 // ═══════════════════════════════════════════════════════════════
 
 const canvas = document.getElementById('gameCanvas');
@@ -240,23 +241,46 @@ function drawWheel(cx,cy,spin){
   ctx.restore();
 }
 
-function drawDrone(x,y,frame){
-  const hv=Math.sin(frame*0.1)*2;
-  const ps=frame*0.4;
-  // arms
-  fx(x,y+hv+3*S,5*S,2*S,'#3a3a5a'); fx(x+15*S,y+hv+3*S,5*S,2*S,'#3a3a5a');
-  fx(x+3*S,y+hv+S,5*S,2*S,'#3a3a5a'); fx(x+12*S,y+hv+S,5*S,2*S,'#3a3a5a');
-  // props
-  [[x+2*S,y+hv+S,ps],[x+18*S,y+hv+S,-ps],[x+5*S,y+hv+4*S,-ps],[x+15*S,y+hv+4*S,ps]].forEach(([px,py,ang])=>{
-    ctx.save(); ctx.translate(px,py); ctx.rotate(ang);
-    fx(-4*S,-S,8*S,2*S,'#8a8ab0'); ctx.restore();
-  });
+function drawRaider(x,y,frame){
+  const gallop=Math.sin(frame*0.18)*S;
+  const lsw=Math.sin(frame*0.18)*2*S;
+  // HORSE
+  // tail
+  fx(x+S,y+8*S+gallop,3*S,8*S,'#3a2808');
   // body
-  fx(x+4*S,y+hv+2*S,12*S,6*S,'#4a4a6a'); fx(x+6*S,y+hv,8*S,4*S,'#6a6a8a');
-  fx(x+8*S,y+hv+S,4*S,2*S,'#2a8ab0'); // camera
-  // LEDs
-  fx(x+5*S,y+hv+4*S,2*S,2*S, frame%20<10?'#f00':'#800');
-  fx(x+13*S,y+hv+4*S,2*S,2*S, frame%20<10?'#f00':'#800');
+  fx(x+3*S,y+10*S+gallop,24*S,10*S,'#8b6a40');
+  fx(x+4*S,y+11*S+gallop,22*S,7*S,'#9a7a4e'); // highlight
+  // neck
+  fx(x+20*S,y+5*S+gallop,7*S,8*S,'#7a5a32');
+  // head
+  fx(x+24*S,y+3*S+gallop,8*S,7*S,'#8b6a40');
+  fx(x+29*S,y+5*S+gallop,4*S,3*S,'#7a5a32'); // snout
+  fx(x+31*S,y+5*S+gallop,2*S,S,'#2a1a0a'); // nostril
+  // mane
+  fx(x+20*S,y+3*S+gallop,3*S,6*S,'#3a2808'); fx(x+22*S,y+2*S+gallop,2*S,4*S,'#3a2808');
+  // legs (galloping)
+  fx(x+5*S,y+19*S,3*S,7*S+lsw,'#7a5a32'); fx(x+4*S,y+25*S+lsw,5*S,2*S,'#1a0a00');
+  fx(x+11*S,y+19*S,3*S,7*S-lsw,'#7a5a32'); fx(x+10*S,y+25*S-lsw,5*S,2*S,'#1a0a00');
+  fx(x+18*S,y+19*S,3*S,7*S-lsw,'#7a5a32'); fx(x+17*S,y+25*S-lsw,5*S,2*S,'#1a0a00');
+  fx(x+24*S,y+19*S,3*S,7*S+lsw,'#7a5a32'); fx(x+23*S,y+25*S+lsw,5*S,2*S,'#1a0a00');
+  // saddle
+  fx(x+10*S,y+9*S+gallop,8*S,4*S,'#5a3a1a');
+  // RIDER — sits at ~x+12, y-10
+  const rx=x+12*S, ry=y-9*S+gallop;
+  // hat brim + crown
+  fx(rx+S,ry+2*S,10*S,2*S,'#3a2808'); fx(rx+2*S,ry-2*S,8*S,5*S,'#4a3010');
+  // face
+  fx(rx+2*S,ry+4*S,8*S,5*S,C.skin2);
+  fx(rx+3*S,ry+5*S,2*S,2*S,'#2a1a0a'); fx(rx+7*S,ry+5*S,2*S,2*S,'#2a1a0a');
+  // red bandana over mouth
+  fx(rx+2*S,ry+8*S,8*S,2*S,'#c83232');
+  // jacket
+  fx(rx+S,ry+9*S,10*S,8*S,'#5a3a1a');
+  // rein arm
+  fx(rx+10*S,ry+11*S,5*S,2*S,'#5a3a1a');
+  // gold sack (stolen goods) — hangs on left
+  fx(rx-4*S,ry+9*S,5*S,6*S,'#c8a820'); fx(rx-3*S,ry+7*S,3*S,3*S,'#d4b830');
+  fx(rx-2*S,ry+6*S,S,2*S,'#7a5a2a'); // tie
 }
 
 function drawGoldNugget(x,y,frame){
@@ -443,30 +467,153 @@ class Lawnmower {
   bounds(){ return {x:this.x+2*S,y:this.y+4*S,w:this.w-4*S,h:this.h-4*S}; }
 }
 
-class Drone {
-  constructor(x,y){ this.x=x; this.y=y; this.baseY=y; this.vx=-2; this.hp=2; this.frame=0; this.hitT=0; this.stunT=0; this.active=true; this.w=20*S; this.h=10*S; this.bombT=120; this.bombs=[]; }
+class Raider {
+  constructor(x,y){ this.x=x; this.y=y; this.vx=-3; this.hp=2; this.frame=0; this.hitT=0; this.stunT=0; this.active=true; this.w=36*S; this.h=27*S; this.stealMsg=0; }
   update(px){
     if(!this.active) return;
-    this.frame++; this.hitT=Math.max(0,this.hitT-1);
+    this.frame++; this.hitT=Math.max(0,this.hitT-1); this.stealMsg=Math.max(0,this.stealMsg-1);
     if(this.stunT>0){ this.stunT--; return; }
-    this.vx=clamp((px-this.x)*0.02,-3,3);
+    const d=px-this.x;
+    // Raiders are fast and aggressive
+    this.vx=Math.abs(d)<700?(d>0?4.5:-4.5):-2;
     this.x+=this.vx;
-    this.y=this.baseY+Math.sin(this.frame*0.05)*18;
-    this.bombT--;
-    if(this.bombT<=0){ this.bombs.push({x:this.x+10*S,y:this.y+10*S,vy:0,active:true}); this.bombT=200; }
-    this.bombs=this.bombs.filter(b=>b.active&&b.y<H+50);
-    this.bombs.forEach(b=>{ b.vy+=0.3; b.y+=b.vy; });
   }
   draw(sx){
     if(!this.active) return;
     const dx=this.x-sx;
     if(dx<-120||dx>W+120) return;
+    // face direction of travel
+    ctx.save();
+    if(this.vx>0){ ctx.translate(dx+this.w,0); ctx.scale(-1,1); }
     if(this.hitT>0) ctx.globalAlpha=0.5;
-    drawDrone(dx,this.y,this.frame);
+    drawRaider(this.vx>0?0:dx,this.y,this.frame);
     ctx.globalAlpha=1;
-    this.bombs.forEach(b=>{ const bx=b.x-sx; fx(bx,b.y,3*S,4*S,'#333'); fx(bx,b.y,3*S,S,'#f44'); });
+    ctx.restore();
+    // health bar
+    fx(dx,this.y-5*S,this.w,3*S,'#333');
+    fx(dx,this.y-5*S,this.w*(this.hp/2),3*S,C.hpG);
+    // steal message
+    if(this.stealMsg>0){
+      ctx.globalAlpha=this.stealMsg/60;
+      txs('GOLD STOLEN!',dx+this.w/2,this.y-12*S,11,'#ffd700','#000','center');
+      ctx.globalAlpha=1;
+    }
   }
-  bounds(){ return {x:this.x+S,y:this.y,w:this.w,h:this.h}; }
+  bounds(){ return {x:this.x+2*S,y:this.y+2*S,w:this.w-4*S,h:this.h-4*S}; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRIBE CAMP  (friendly NPC — trade with Marty)
+// ═══════════════════════════════════════════════════════════════
+
+class TribeCamp {
+  constructor(x){
+    this.x=x; this.y=H*0.72;
+    this.traded=false; this.radius=380;
+    this.msgTimer=0; this.msg=''; this.msgCol=C.gold0;
+    this.frame=0;
+  }
+  tryTrade(player, scrollX){
+    if(this.traded) return;
+    const dist=Math.abs(player.x-this.x);
+    if(dist>this.radius) return;
+    if(player.gold>=3){
+      player.gold-=3;
+      player.score+=500;
+      player.hunger=Math.min(player.maxHunger, player.hunger+30); // shared food
+      this.traded=true;
+      this.msg='Marty traded 3 gold — scouts show a safe route! +500pts';
+      this.msgCol=C.gold0;
+      this.msgTimer=300;
+      burst(this.x-scrollX, this.y-40*S, 20, [C.gold0,'#8f8','#fff','#ff8'], 5, 50);
+    } else {
+      this.msg='Need at least 3 gold to trade.';
+      this.msgCol='#f88';
+      this.msgTimer=150;
+    }
+  }
+  update(){ this.frame++; if(this.msgTimer>0) this.msgTimer--; }
+  draw(sx, player){
+    const dx=this.x-sx;
+    if(dx<-250||dx>W+250) return;
+    const gy=this.y;
+    // ground shadow / territory marker
+    ctx.globalAlpha=0.12;
+    ctx.fillStyle=this.traded?'#00ff00':'#ffaa00';
+    ctx.beginPath(); ctx.ellipse(dx,gy,140,12,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // three teepees
+    this.drawTeepee(dx-68,gy,40,32,false);
+    this.drawTeepee(dx,gy,56,44,true);   // main
+    this.drawTeepee(dx+70,gy,38,30,false);
+    // campfire
+    const fl=Math.sin(this.frame*0.1)*0.3;
+    ctx.globalAlpha=0.85+fl;
+    fx(dx-5,gy-8*S,10,14,'#e87832');
+    ctx.globalAlpha=0.35+fl*0.15;
+    ctx.fillStyle='#ffa030'; ctx.beginPath(); ctx.arc(dx,gy-6*S,14,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // smoke wisps
+    [0,1,2].forEach(i=>{
+      const sw=Math.sin(this.frame*0.05+i*1.2)*4;
+      ctx.globalAlpha=0.25-i*0.07;
+      fx(dx-2+sw,gy-30*S-i*10,4,8,'#aaaaaa');
+    });
+    ctx.globalAlpha=1;
+    // proximity prompt
+    const dist=player ? Math.abs(player.x-this.x) : 999;
+    if(!this.traded && dist<this.radius){
+      const fadeIn=Math.min(1,(this.radius-dist)/80);
+      const pulse=0.6+Math.sin(this.frame*0.1)*0.4;
+      ctx.globalAlpha=fadeIn*pulse;
+      if(player.charIdx===4){
+        txs('[Z] Offer 3 gold for route guidance',dx,gy-72*S,11,C.gold0,'#000','center');
+      } else {
+        txs('Friendly scouts. Switch to MARTY [5] to trade.',dx,gy-72*S,10,'#fff','#000','center');
+      }
+      ctx.globalAlpha=1;
+    }
+    if(this.traded && dist<this.radius){
+      ctx.globalAlpha=0.7;
+      txs('✓ ALLIED — SAFE PASSAGE',dx,gy-72*S,10,'#8f8','#000','center');
+      ctx.globalAlpha=1;
+    }
+    // trade message banner
+    if(this.msgTimer>0){
+      const alpha=Math.min(1,this.msgTimer/40);
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(dx-210,gy-90*S,420,28);
+      ctx.strokeStyle=this.msgCol; ctx.lineWidth=1; ctx.strokeRect(dx-210,gy-90*S,420,28);
+      txs(this.msg,dx,gy-78*S,10,this.msgCol,'#000','center');
+      ctx.globalAlpha=1;
+    }
+  }
+  drawTeepee(x,gy,w,h,main){
+    const tx2=x, ty=gy-h;
+    // main cone
+    ctx.fillStyle=main?'#c8a870':'#b89860';
+    ctx.beginPath(); ctx.moveTo(tx2,ty); ctx.lineTo(tx2-w/2,gy); ctx.lineTo(tx2+w/2,gy); ctx.closePath(); ctx.fill();
+    // left stripe decoration
+    ctx.fillStyle='#7a5028';
+    ctx.beginPath(); ctx.moveTo(tx2,ty); ctx.lineTo(tx2-w/2,gy); ctx.lineTo(tx2-w/3,gy); ctx.closePath(); ctx.fill();
+    // geometric band mid-height
+    if(main){
+      ctx.fillStyle='#c83232'; ctx.beginPath();
+      ctx.moveTo(tx2-w*0.25,gy-h*0.45); ctx.lineTo(tx2+w*0.25,gy-h*0.45);
+      ctx.lineTo(tx2+w*0.3,gy-h*0.35); ctx.lineTo(tx2-w*0.3,gy-h*0.35);
+      ctx.closePath(); ctx.fill();
+      [tx2-w*0.1,tx2,tx2+w*0.1].forEach(bx=>{
+        ctx.fillStyle=C.gold0; ctx.beginPath();
+        ctx.moveTo(bx,gy-h*0.45); ctx.lineTo(bx-3,gy-h*0.35); ctx.lineTo(bx+3,gy-h*0.35); ctx.closePath(); ctx.fill();
+      });
+    }
+    // door (oval)
+    ctx.fillStyle='#4a2a0a';
+    ctx.beginPath(); ctx.ellipse(tx2,gy-h*0.12,w*0.1,h*0.14,0,0,Math.PI*2); ctx.fill();
+    // poles out top
+    ctx.strokeStyle='#6a4a20'; ctx.lineWidth=1.5;
+    [[-6,-14],[0,-18],[6,-14]].forEach(([ox,oy])=>{ ctx.beginPath(); ctx.moveTo(tx2,ty); ctx.lineTo(tx2+ox,ty+oy); ctx.stroke(); });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -478,7 +625,7 @@ const CHARS = [
   {id:'ellen', name:'Ellen',   ability:'Reveal',  col:'#4a6aa0', key:'2'},
   {id:'rusty', name:'Rusty',   ability:'Sprint',  col:'#c83232', key:'3'},
   {id:'audrey',name:'Audrey',  ability:'Stun',    col:'#9a2a9a', key:'4'},
-  {id:'marty', name:'Marty',   ability:'Detect',  col:'#4a8a4a', key:'5'},
+  {id:'marty', name:'Marty',   ability:'Scout',   col:'#4a8a4a', key:'5'},
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -490,6 +637,7 @@ class Player {
     this.x=x; this.y=y; this.vx=0; this.vy=0;
     this.onGround=false; this.facing=1; this.frame=0;
     this.charIdx=0; this.hp=100; this.maxHp=100;
+    this.hunger=100; this.maxHunger=100; this.hungerTimer=0;
     this.score=0; this.gold=0; this.goldNeeded=12;
     this.abilityT=0; this.abilityActive=false;
     this.hitT=0; this.w=18*S; this.h=28*S;
@@ -500,6 +648,12 @@ class Player {
 
   update(platforms,level){
     this.frame++; this.hitT=Math.max(0,this.hitT-1); this.abilityT=Math.max(0,this.abilityT-1);
+
+    // Hunger drain — every 3 seconds lose 3 food
+    this.hungerTimer++;
+    if(this.hungerTimer>=180){ this.hunger=Math.max(0,this.hunger-3); this.hungerTimer=0; }
+    // Starving = slow health drain
+    if(this.hunger<=0 && this.frame%60===0) this.hp=Math.max(0,this.hp-5);
 
     const spd = (this.charIdx===2 && this.abilityActive) ? 7 : 4;
     if(keys['ArrowLeft']){  this.vx=-spd; this.facing=-1; }
@@ -543,7 +697,7 @@ class Player {
     if(this.charIdx===0) burst(this.x+9*S,this.y+14*S,15,[C.gold0,'#f80','#fff'],5,40);
     if(this.charIdx===1) level.revealGold(this.x);
     if(this.charIdx===3) level.stunEnemies(this.x,this.y);
-    if(this.charIdx===4) level.detectGold(this.x);
+    if(this.charIdx===4){ level.detectGold(this.x); level.tryTribeTrade(this.x,this.y); }
     setTimeout(()=>this.abilityActive=false,1500);
   }
 
@@ -577,6 +731,7 @@ class Level {
     this.platforms=this.mkPlatforms();
     this.collectibles=this.mkCollectibles();
     this.enemies=this.mkEnemies();
+    this.tribeCamp=new TribeCamp(2600);
     this.player=new Player(200,300);
     this.wagonX=700; this.wagonY=H*0.72-34*S;
   }
@@ -615,13 +770,16 @@ class Level {
   mkEnemies(){
     const GY=H*0.72;
     const es=[];
-    [900,1700,2500,3300,4100].forEach(x=>es.push(new Lawnmower(x,GY-22*S)));
-    [700,1500,2300,3100,3900,4500].forEach(x=>es.push(new Drone(x,H*0.33)));
+    // Lawnmower bandits (ground) — raiders who found the family's BBQ lawnmower
+    [900,1700,3300,4100].forEach(x=>es.push(new Lawnmower(x,GY-22*S)));
+    // Horseback raiders (faster, steal gold)
+    [650,1450,2200,3050,3800,4500].forEach(x=>es.push(new Raider(x,GY-27*S)));
     return es;
   }
 
   revealGold(px){ this.revealT=300; }
   detectGold(px){ this.detectT=200; }
+  tryTribeTrade(px,py){ this.tribeCamp.tryTrade(this.player, this.scroll); }
   stunEnemies(px,py){
     this.enemies.forEach(e=>{ if(e.active&&Math.abs(e.x-px)<320){ e.stunT=150; e.hitT=150; } });
     burst(px+9*S,py+14*S,20,['#f0f','#f8f','#fff'],6,50);
@@ -631,6 +789,7 @@ class Level {
     this.frame++;
     if(this.revealT>0) this.revealT--;
     if(this.detectT>0) this.detectT--;
+    this.tribeCamp.update();
     const p=this.player;
     p.update(this.platforms,this);
     this.scroll=clamp(p.x-W*0.35,0,this.length-W);
@@ -646,7 +805,9 @@ class Level {
           p.gold+=bonus; p.score+=100*bonus;
           burst(c.x-this.scroll,c.y,8,[C.gold0,C.gold1,'#fff'],3,25);
         } else {
-          p.hp=Math.min(p.maxHp,p.hp+20);
+          // Food restores both hunger AND health
+          p.hunger=Math.min(p.maxHunger,p.hunger+30);
+          p.hp=Math.min(p.maxHp,p.hp+8);
           burst(c.x-this.scroll,c.y,6,['#f88','#f44','#fff'],2,20);
         }
       }
@@ -658,16 +819,21 @@ class Level {
       const eb=e.bounds();
       if(rectsHit(pb,eb)){
         if(p.vy>0 && p.y+p.h < e.y+e.h*0.5+10){
-          e.hp--; p.vy=-9; p.score+=50;
-          e.hitT=30;
+          // stomp to defeat
+          e.hp--; p.vy=-9; p.score+=50; e.hitT=30;
           if(e.hp<=0){ e.active=false; p.score+=200; burst(e.x-this.scroll,e.y,15,['#f44','#f80',C.gold0],5,40); shake(8,20); }
-        } else p.hit(15);
-      }
-      if(e instanceof Drone){
-        e.bombs.forEach(b=>{
-          if(!b.active) return;
-          if(rectsHit(pb,{x:b.x,y:b.y,w:3*S,h:4*S})){ b.active=false; p.hit(10); burst(b.x-this.scroll,b.y,8,['#f44','#f80'],3,20); }
-        });
+        } else if(e instanceof Raider){
+          // Raiders steal gold instead of pure damage
+          if(p.hitT<=0){
+            if(p.gold>0){
+              p.gold--; e.stealMsg=90;
+              burst(p.x-this.scroll+9*S,p.y,8,[C.gold0,C.gold1,'#fff'],4,30);
+            }
+            p.hit(8);
+          }
+        } else {
+          p.hit(15); // lawnmower deals more damage
+        }
       }
     });
 
@@ -689,6 +855,7 @@ class Level {
     const gx=this.goalX-sx;
     if(gx>0&&gx<W) this.drawCheckpoint(gx);
     this.collectibles.forEach(c=>c.draw(sx));
+    this.tribeCamp.draw(sx, this.player);
     drawParts();
     this.enemies.forEach(e=>e.draw(sx));
     this.player.draw(sx);
@@ -732,24 +899,38 @@ class Level {
     const p=this.player;
     ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,W,58);
 
-    // health
-    txs('HEALTH',12,18,11,'#fff','#000');
-    fx(12,22,150,14,'#333');
-    const hw=Math.max(0,(p.hp/p.maxHp)*150);
-    fx(12,22,hw,14, p.hp>60?C.hpG:p.hp>30?'#e8a800':C.hp);
-    fx(12,22,150,2,'rgba(255,255,255,0.25)');
-    txs(`${p.hp}`,14,34,9,'#fff');
+    // HEALTH
+    txs('HP',10,16,10,'#fff','#000');
+    fx(10,20,118,13,'#333');
+    const hw=Math.max(0,(p.hp/p.maxHp)*118);
+    fx(10,20,hw,13, p.hp>60?C.hpG:p.hp>30?'#e8a800':C.hp);
+    fx(10,20,118,2,'rgba(255,255,255,0.25)');
+    txs(`${Math.ceil(p.hp)}`,12,31,8,'#fff');
 
-    // gold
-    txs('GOLD',175,18,11,C.gold0,'#000');
-    fx(175,22,120,14,'#333');
-    fx(175,22,Math.min(1,p.gold/p.goldNeeded)*120,14,C.gold1);
-    fx(175,22,120,2,'rgba(255,255,255,0.25)');
-    txs(`${p.gold}/${p.goldNeeded}`,177,34,9,C.gold0);
+    // FOOD / HUNGER
+    const hungerCol=p.hunger>60?'#e8c832':p.hunger>25?'#c87820':C.hp;
+    txs('FOOD',142,16,10,'#e8d070','#000');
+    fx(142,20,100,13,'#333');
+    fx(142,20,Math.max(0,(p.hunger/p.maxHunger)*100),13,hungerCol);
+    fx(142,20,100,2,'rgba(255,255,255,0.25)');
+    txs(`${Math.ceil(p.hunger)}`,144,31,8,'#e8d070');
+    if(p.hunger<=20){
+      const stv=0.5+Math.sin(Date.now()*0.015)*0.5;
+      ctx.globalAlpha=stv;
+      txs('STARVING!',144,31,8,'#f00','#000');
+      ctx.globalAlpha=1;
+    }
 
-    // score
-    txs('SCORE',312,18,11,'#fff','#000');
-    txs(String(p.score).padStart(6,'0'),312,36,16,C.gold0,'#000');
+    // GOLD repair meter
+    txs('GOLD',256,16,10,C.gold0,'#000');
+    fx(256,20,100,13,'#333');
+    fx(256,20,Math.min(1,p.gold/p.goldNeeded)*100,13,C.gold1);
+    fx(256,20,100,2,'rgba(255,255,255,0.25)');
+    txs(`${p.gold}/${p.goldNeeded}`,258,31,8,C.gold0);
+
+    // SCORE
+    txs('SCORE',370,16,10,'#fff','#000');
+    txs(String(p.score).padStart(6,'0'),370,34,15,C.gold0,'#000');
 
     // character portraits
     const portX=W-CHARS.length*50-10;
@@ -838,7 +1019,7 @@ function drawTitle(mi){
   });
   ctx.shadowBlur=0; ctx.textAlign='left';
 
-  txs('The trail was hard enough before the lawnmower showed up.',W/2,H*0.48,12,'#e8d090','#000','center');
+  txs('Collect gold. Fix the machine. Raiders want the wagon.',W/2,H*0.48,12,'#e8d090','#000','center');
 
   // menu
   const items=['NEW GAME','HIGH SCORES','HOW TO PLAY'];
@@ -852,7 +1033,7 @@ function drawTitle(mi){
     txs(item,W/2,y,sel?19:16,sel?C.gold0:'#c8c8a0','#000','center');
   });
 
-  txs('v1.0  ◆  TRAIL BLAZED  ◆  THE BLAZE FAMILY',W/2,H-12,8,'#444','#000','center');
+  txs('v1.1  ◆  TRAIL BLAZED  ◆  THE BLAZE FAMILY',W/2,H-12,8,'#444','#000','center');
 }
 
 // NARRATIVE
@@ -869,24 +1050,29 @@ const NARRATIVE=[
      "the riding lawnmower, Grandma's birthday cake — all of it.",
      "","When the smoke cleared: wagon wheel ruts. Tall grass.",
      "A line of covered wagons in the distance.",
-     "","1848. Somewhere on the Oregon Trail.","The machine sat in pieces in the wagon."]},
-  {title:"DAD'S ASSESSMENT",
+     "","1848. Somewhere on the Oregon Trail.",
+     "The machine sat in pieces in Dad's wagon.",
+     "The drone and lawnmower had landed nearby. They'd need those."]},
+  {title:"THE SITUATION",
    lines:['"Good news," Dad said, already tinkering.',
-     '"The machine runs on thermal energy —',
-     'and gold has perfect flux conductivity."',
-     "","Ellen stared at the horizon. Wagons. Mountains.",
-     '"Clark. There are covered wagons."',
-     "",'"Even better news! We join the wagon train.',
-     'Collect gold. Fix each component. Get to Fort Laramie.',
-     'Home in time for cake!"','','He was unreasonably excited.']},
+     '"The machine runs on thermal energy.',
+     'Gold has perfect flux conductivity. We just need to collect it."',
+     "","Ellen stared at the horizon. A rider. Moving fast.",
+     '"Clark. That rider has our lawnmower."',
+     '"Frontier raiders. They want the wagon." Dad was calm.',
+     '"BETTER NEWS — we join the wagon train. Collect gold.',
+     'Fix the machine. Watch out for raiders and hunger.',
+     'The Shoshone scouts ahead may help us if we trade fairly."',
+     '"Home in time for Grandma\'s cake!" He was unreasonably excited.']},
   {title:"CHOOSE YOUR TRAIL LEADER",
    lines:["Every family member has a unique skill.",
      "Switch between them anytime with keys 1-5.",
-     "","Clark: Repair boost (doubles gold value)",
-     "Ellen: Reveal nearby hidden gold",
-     "Rusty: Sprint + double jump",
-     "Audrey: Stun enemies with music blast",
-     "Marty: Arrow points to nearest gold",
+     "","Clark [1]: Repair boost — doubles gold value",
+     "Ellen [2]: Reveal nearby hidden gold",
+     "Rusty [3]: Sprint burst + double jump",
+     "Audrey [4]: Stun nearby raiders with music",
+     "Marty [5]: Detect gold + trade with tribal scouts",
+     "","FOOD keeps you alive. Raiders steal your gold.",
      "","Press ENTER to begin Level 1: THE OPEN PRAIRIE"]},
 ];
 let narrF=0;
@@ -987,12 +1173,13 @@ function drawHowToPlay(){
   CHARS.forEach((c,i)=>{
     ctx.fillStyle=c.col+'66'; ctx.fillRect(96,242+i*30-14,W-192,26);
     txs(`${c.name} [${c.key}]`,100,242+i*30,12,c.col,'#000');
-    txs(['Doubles gold collected temporarily','Shows nearby gold locations','Sprint burst + double jump','Stuns enemies in range with music','Arrow points to nearest gold'][i],260,242+i*30,11,'#ddd','#000');
+    txs(['Doubles gold collected temporarily','Shows nearby gold locations','Sprint burst + double jump','Stuns enemies in range with music','Gold detection + trade with scouts'][i],260,242+i*30,11,'#ddd','#000');
   });
 
   txs('OBJECTIVE',100,406,16,'#e8d090','#000');
   txs('Collect GOLD to fill the Repair Meter. Reach FORT LARAMIE to complete the level.',100,430,11,'#ccc','#000');
-  txs('STOMP enemies from above. Food pickups restore health. Stay alive!',100,450,11,'#ccc','#000');
+  txs('STOMP enemies from above. FOOD restores health AND hunger. Starving = health drain.',100,450,11,'#ccc','#000');
+  txs('RAIDERS steal your gold on contact — stomp them or avoid. Use MARTY near scouts to trade.',100,468,11,'#e8c870','#000');
   txs('PRESS ENTER TO RETURN',W/2,H-25,12,'#777','#000','center');
 }
 
